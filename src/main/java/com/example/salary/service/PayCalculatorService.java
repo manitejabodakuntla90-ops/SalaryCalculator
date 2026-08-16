@@ -8,13 +8,28 @@ import java.util.List;
 @Service
 public class PayCalculatorService {
 
-    // 7th CPC Pay Matrix mockup: rows represent stages (1 to max), columns represent levels (1 to max)
+    // Expanded 7th CPC Pay Matrix mock (20 stages, 10 levels) to prevent premature capping
     private final int[][] payMatrix = {
         {18000, 19900, 21700, 25500, 29200, 35400, 44900, 47600, 53100, 56100},
         {18500, 20500, 22400, 26300, 30100, 36500, 46200, 49000, 54700, 57800},
         {19100, 21100, 23100, 27100, 31000, 37600, 47600, 50500, 56300, 59500},
         {19700, 21700, 23800, 27900, 31900, 38700, 49000, 52000, 58000, 61300},
-        {20300, 22400, 24500, 28700, 32900, 39900, 50500, 53600, 59700, 63100}
+        {20300, 22400, 24500, 28700, 32900, 39900, 50500, 53600, 59700, 63100},
+        {20900, 23100, 25200, 29600, 33900, 41100, 52000, 55200, 61500, 65000},
+        {21500, 23800, 26000, 30500, 34900, 42300, 53600, 56900, 63300, 67000},
+        {22100, 24500, 26800, 31400, 35900, 43600, 55200, 58600, 65200, 69000},
+        {22800, 25200, 27600, 32300, 37000, 44900, 56900, 60400, 67200, 71100},
+        {23500, 26000, 28400, 33300, 38100, 46200, 58600, 62200, 69200, 73200},
+        {24200, 26800, 29300, 34300, 39200, 47600, 60400, 64100, 71300, 75400},
+        {24900, 27600, 30200, 35300, 40400, 49000, 62200, 66000, 73400, 77700},
+        {25600, 28400, 31100, 36400, 41600, 50500, 64100, 68000, 75600, 80000},
+        {26400, 29300, 32000, 37500, 42800, 52000, 66000, 70000, 77900, 82400},
+        {27200, 30200, 33000, 38600, 44100, 53600, 68000, 72100, 80200, 84900},
+        {28000, 31100, 34000, 39800, 45400, 55200, 70000, 74300, 82600, 87400},
+        {28800, 32000, 35000, 41000, 46800, 56900, 72100, 76500, 85100, 90000},
+        {29700, 33000, 36100, 42200, 48200, 58600, 74300, 78800, 87700, 92700},
+        {30600, 34000, 37200, 43500, 49600, 60400, 76500, 81200, 90300, 95500},
+        {31500, 35000, 38300, 44800, 51100, 62200, 78800, 83600, 93000, 98400}
     };
 
     public static class CareerEvent {
@@ -60,15 +75,12 @@ public class PayCalculatorService {
         int maxStages = payMatrix.length;
 
         for (int year = startYear; year <= endYear; year++) {
-            // Check if there's a promotion this year
             Promotion promo = findPromotionForYear(promotions, year);
             if (promo != null) {
                 currentLevel = promo.newLevel;
-                // Find matching or next higher stage in the new level corresponding to current basic pay
                 int currentSalary = payMatrix[currentStage - 1][currentLevel - 1];
                 currentStage = findNextOrEqualStage(currentLevel, currentSalary);
             } else if (year > startYear) {
-                // Regular annual increment: increment stage by 1 if not already at max stage
                 if (currentStage < maxStages) {
                     currentStage++;
                 }
