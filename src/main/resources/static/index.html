@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Retirement Pay Calculator</title>
+    <style>
+        body { font-family: sans-serif; margin: 40px; background: #f4f7f6; }
+        .container { max-width: 650px; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input { width: 100%; padding: 8px; box-sizing: border-box; }
+        button { background: #007bff; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 4px; }
+        button:hover { background: #0056b3; }
+        .promo-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+        .promo-row input { flex: 1; }
+        .remove-btn { background: #dc3545; padding: 8px 12px; }
+        .remove-btn:hover { background: #c82333; }
+        hr { margin: 20px 0; border: 0; border-top: 1px solid #ddd; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background: #f8f9fa; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Retirement Pay Calculator</h2>
+    
+    <div class="form-group">
+        <label>Join Date:</label>
+        <input type="date" id="joinDate" value="2020-06-01">
+    </div>
+    
+    <div class="form-group">
+        <label>Date of Birth (Retirement age is 60):</label>
+        <input type="date" id="dob" value="1964-06-01">
+    </div>
+    
+    <div class="form-group">
+        <label>Initial Level:</label>
+        <input type="text" id="level" value="1">
+    </div>
+
+    <div class="form-group">
+        <label>Initial Stage:</label>
+        <input type="text" id="stage" value="1">
+    </div>
+
+    <hr>
+
+    <h3>Promotions History</h3>
+    <div id="promotionsContainer"></div>
+    <button type="button" onclick="addPromotionRow()" style="background: #28a745; margin-bottom: 15px;">+ Add Promotion</button>
+
+    <br>
+    <button onclick="calculateSalary()">Calculate Lifetime Earnings</button>
+    
+    <h3 id="totalEarnings" style="margin-top: 20px;"></h3>
+    
+    <table id="resultTable">
+        <thead>
+            <tr>
+                <th>Year</th>
+                <th>Level</th>
+                <th>Stage</th>
+                <th>Monthly Basic (₹)</th>
+                <th>Annual Total (₹)</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<script>
+function addPromotionRow(year = '', level = '') {
+    const container = document.getElementById('promotionsContainer');
+    const div = document.createElement('div');
+    div.className = 'promo-row';
+    div.innerHTML = `
+        <input type="text" class="promo-year" placeholder="Year (e.g. 2023)" value="${year}">
+        <input type="text" class="promo-level" placeholder="New Level (e.g. 2)" value="${level}">
+        <button type="button" class="remove-btn" onclick="this.parentElement.remove()">X</button>
+    `;
+    container.appendChild(div);
+}
+
+// Add an initial example promotion row
+addPromotionRow('2023', '2');
+
+function calculateRetirementDate(dobString) {
+    const dob = new Date(dobString);
+    const retirementYear = dob.getFullYear() + 60;
+    const retirementMonth = dob.getMonth();
+    const lastDay = new Date(retirementYear, retirementMonth + 1, 0);
+    return lastDay.toISOString().split('T')[0];
+}
+
+async function calculateSalary() {
+    let promotions = [];
+    document.querySelectorAll('.promo-row').forEach(row => {
+        const year = row.querySelector('.promo-year').value.trim();
+        const level = row.querySelector('.promo-level').value.trim();
+        if (year && level) {
+            promotions.push({
+                year: parseInt(year),
+                newLevel: parseInt(level)
+            });
+        }
+    });
+
+    const dobValue = document.getElementById('dob').value;
+    const retirementDate = calculateRetirementDate(dobValue);
+
+    const payload = {
+        joinDate: document.getElementById('joinDate').value,
+        retirementDate: retirementDate,
+        initialLevel: parseInt(document.getElementById('level').value) || 1,
+        initialStage: parseInt(document.getElementById('stage').value) || 1,
+        promotions: promotions
+    };
+
+    const response = await fetch('/api/salary/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    
+    const data = await response.json();
+    document.getElementById('totalEarnings').innerText = 'Total Lifetime Earnings: ₹' + data.totalLifetimeEarnings.toLocaleString('en-IN');
+
+    const tbody = document.querySelector('#resultTable tbody');
+    tbody.innerHTML = '';
+
+    data.yearlyProgression.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${row.year}</td>
+            <td>${row.level}</td>
+            <td>${row.stage}</td>
+            <td>₹${row.monthlyBasic.toLocaleString('en-IN')}</td>
+            <td>₹${row.annualTotal.toLocaleString('en-IN')}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+</script>
+</body>
+</html>
